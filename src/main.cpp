@@ -1,9 +1,20 @@
-#if defined(_WIN32) || defined (_WIN64)
-#define UNICODE
-#include <Windows.h>
-#endif
+#include "DemoApp.hpp"
 
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, INT cmdShow)
+#include <Windows.h>
+
+#include <cstdlib>
+#include <exception>
+
+int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand)
 {
-  return MessageBoxW(nullptr, L"Hello, World!", L"Message", MB_OKCANCEL);
+  try
+  {
+    DemoApp app(instance);
+    return app.Run(showCommand);
+  }
+  catch (const std::exception& exception)
+  {
+    MessageBoxA(nullptr, exception.what(), "Fatal Error", MB_OK | MB_ICONERROR);
+    return EXIT_FAILURE;
+  }
 }

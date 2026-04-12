@@ -1,6 +1,49 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_executable(${PROJECT_NAME} WIN32 main.cpp)
+add_executable(
+  ${PROJECT_NAME}
+  WIN32
+  main.cpp
+  AntiAliasing.cpp
+  Camera.cpp
+  DemoApp.cpp
+  EndlessGrid.cpp
+  GraphicsAdapter.cpp
+  GpuRayTracer.cpp
+  Renderer.cpp
+  Window.cpp
+  Collision.cpp
+  ${PROJECT_SOURCE_DIR}/include/Camera.hpp
+  ${PROJECT_SOURCE_DIR}/include/Collision.hpp
+  ${PROJECT_SOURCE_DIR}/include/DemoApp.hpp
+  ${PROJECT_SOURCE_DIR}/include/EndlessGrid.hpp
+  ${PROJECT_SOURCE_DIR}/include/GraphicsAdapter.hpp
+  ${PROJECT_SOURCE_DIR}/include/GpuRayTracer.hpp
+  ${PROJECT_SOURCE_DIR}/include/AntiAliasing.hpp
+  ${PROJECT_SOURCE_DIR}/include/RenderMode.hpp
+  ${PROJECT_SOURCE_DIR}/include/Renderer.hpp
+  ${PROJECT_SOURCE_DIR}/include/SceneTypes.hpp
+  ${PROJECT_SOURCE_DIR}/include/Window.hpp
+  ${PROJECT_SOURCE_DIR}/utils/Input.hpp
+  ${PROJECT_SOURCE_DIR}/utils/KeyMap.hpp
+  ${PROJECT_SOURCE_DIR}/utils/Math.hpp
+  ${PROJECT_SOURCE_DIR}/utils/MathTypes.hpp
+  ${PROJECT_SOURCE_DIR}/utils/MatrixMath.hpp
+  ${PROJECT_SOURCE_DIR}/utils/VectorMath.hpp
+  ${PROJECT_SOURCE_DIR}/res/shaders/fullscreen_vs.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/endless_grid_vs.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/endless_grid_ps.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/copy_ps.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/fxaa_ps.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/raytrace_cs.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/smaa_edge_ps.hlsl
+  ${PROJECT_SOURCE_DIR}/res/shaders/smaa_blend_ps.hlsl
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE d3d12 d3d11 dxgi d3dcompiler dxguid)
-target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/include
+)
