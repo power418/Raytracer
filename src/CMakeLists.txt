@@ -7,6 +7,7 @@ add_executable(
   AntiAliasing.cpp
   Camera.cpp
   DemoApp.cpp
+  SelectionController.cpp
   EndlessGrid.cpp
   GraphicsAdapter.cpp
   GpuRayTracer.cpp
@@ -23,6 +24,7 @@ add_executable(
   ${PROJECT_SOURCE_DIR}/include/RenderMode.hpp
   ${PROJECT_SOURCE_DIR}/include/Renderer.hpp
   ${PROJECT_SOURCE_DIR}/include/SceneTypes.hpp
+  ${PROJECT_SOURCE_DIR}/include/SelectionController.hpp
   ${PROJECT_SOURCE_DIR}/include/Window.hpp
   ${PROJECT_SOURCE_DIR}/utils/Input.hpp
   ${PROJECT_SOURCE_DIR}/utils/KeyMap.hpp

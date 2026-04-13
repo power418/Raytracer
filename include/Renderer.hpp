@@ -22,7 +22,12 @@ public:
 
   void Initialize(HWND windowHandle, std::uint32_t width, std::uint32_t height);
   void Resize(std::uint32_t width, std::uint32_t height);
-  void Render(const Camera& camera, const CubeState& obstacleCube, const CubeState& playerCube, bool collisionActive);
+  void Render(const Camera& camera,
+              const CubeState& obstacleCube,
+              const CubeState& playerCube,
+              bool collisionActive,
+              bool obstacleSelected,
+              bool playerSelected);
   void SetAntiAliasingMode(AntiAliasingMode mode);
   AntiAliasingMode GetAntiAliasingMode() const;
   void SetRenderMode(RenderMode mode);

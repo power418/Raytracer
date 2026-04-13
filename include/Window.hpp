@@ -14,6 +14,8 @@ public:
 
   virtual void OnResize(std::uint32_t width, std::uint32_t height) = 0;
   virtual void OnKeyDown(WPARAM key) = 0;
+  virtual void OnLeftMouseDown(std::int32_t x, std::int32_t y) = 0;
+  virtual void OnRightMouseDown(std::int32_t x, std::int32_t y) = 0;
   virtual void OnCommand(WPARAM wParam, LPARAM lParam) = 0;
 };
 

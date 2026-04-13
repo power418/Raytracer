@@ -3,6 +3,7 @@
 #include "AntiAliasing.hpp"
 #include "Camera.hpp"
 #include "Renderer.hpp"
+#include "SelectionController.hpp"
 #include "SceneTypes.hpp"
 #include "Window.hpp"
 
@@ -26,6 +27,8 @@ public:
 
   void OnResize(std::uint32_t width, std::uint32_t height) override;
   void OnKeyDown(WPARAM key) override;
+  void OnLeftMouseDown(std::int32_t x, std::int32_t y) override;
+  void OnRightMouseDown(std::int32_t x, std::int32_t y) override;
   void OnCommand(WPARAM wParam, LPARAM lParam) override;
 
 private:
@@ -35,6 +38,7 @@ private:
   void HandleAntiAliasingHotkeys(WPARAM key);
   void SetupMenu();
   void UpdateRenderMenuChecks();
+  void UpdateWindowTitle();
 
 private:
   HINSTANCE instance_ = nullptr;
@@ -47,6 +51,7 @@ private:
   HMENU renderMenu_ = nullptr;
   CubeState playerCube_ = {};
   CubeState obstacleCube_ = {};
+  SelectionController selectionController_;
   bool collisionActive_ = false;
   std::chrono::steady_clock::time_point previousFrameTime_;
 };

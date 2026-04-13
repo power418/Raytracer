@@ -1,5 +1,7 @@
 #include "Window.hpp"
 
+#include <windowsx.h>
+
 #include <stdexcept>
 
 namespace
@@ -125,6 +127,12 @@ LRESULT Window::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
   case WM_KEYDOWN:
     events_.OnKeyDown(wParam);
+    return 0;
+  case WM_LBUTTONDOWN:
+    events_.OnLeftMouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+    return 0;
+  case WM_RBUTTONDOWN:
+    events_.OnRightMouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
     return 0;
   case WM_COMMAND:
     events_.OnCommand(wParam, lParam);

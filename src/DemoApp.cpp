@@ -12,7 +12,7 @@ constexpr wchar_t kWindowTitle[] = L"DirectX 11 Demo Application";
 constexpr math::Float3 kCameraCollisionExtents = {0.35f, 0.65f, 0.35f};
 constexpr UINT kMenuRenderRaster = 40001;
 constexpr UINT kMenuRenderRayTrace = 40002;
-}
+}  // namespace
 
 DemoApp::DemoApp(HINSTANCE instance)
   : instance_(instance),
@@ -31,6 +31,7 @@ int DemoApp::Run(int showCommand)
   window_.Show(showCommand);
   renderer_.Initialize(window_.GetHandle(), window_.GetClientWidth(), window_.GetClientHeight());
   SetupMenu();
+  UpdateWindowTitle();
   ResetTimer();
 
   while (window_.ProcessMessages())
@@ -48,6 +49,18 @@ void DemoApp::OnResize(std::uint32_t width, std::uint32_t height)
 
 void DemoApp::OnKeyDown(WPARAM key)
 {
+  if (selectionController_.HandleKeyDown(key,
+                                         window_.GetHandle(),
+                                         camera_,
+                                         window_.GetClientWidth(),
+                                         window_.GetClientHeight(),
+                                         playerCube_,
+                                         obstacleCube_))
+  {
+    UpdateWindowTitle();
+    return;
+  }
+
   if (key == VK_ESCAPE)
   {
     DestroyWindow(window_.GetHandle());
@@ -55,6 +68,25 @@ void DemoApp::OnKeyDown(WPARAM key)
   }
 
   HandleAntiAliasingHotkeys(key);
+}
+
+void DemoApp::OnLeftMouseDown(std::int32_t x, std::int32_t y)
+{
+  selectionController_.HandleLeftClick(x,
+                                       y,
+                                       window_.GetHandle(),
+                                       camera_,
+                                       window_.GetClientWidth(),
+                                       window_.GetClientHeight(),
+                                       playerCube_,
+                                       obstacleCube_);
+  UpdateWindowTitle();
+}
+
+void DemoApp::OnRightMouseDown(std::int32_t, std::int32_t)
+{
+  selectionController_.HandleRightClick(playerCube_, obstacleCube_);
+  UpdateWindowTitle();
 }
 
 void DemoApp::OnCommand(WPARAM wParam, LPARAM)
@@ -88,13 +120,21 @@ void DemoApp::Tick()
 
   const float deltaSeconds = std::min(frameTime.count(), 0.05f);
   Update(deltaSeconds);
-  renderer_.Render(camera_, obstacleCube_, playerCube_, collisionActive_);
+  renderer_.Render(camera_,
+                   obstacleCube_,
+                   playerCube_,
+                   collisionActive_,
+                   selectionController_.IsObstacleSelected(),
+                   selectionController_.IsPlayerSelected());
 }
 
 void DemoApp::Update(float deltaSeconds)
 {
-  const math::Float3 previousCameraPosition = camera_.GetPosition();
-  camera_.UpdateFromInput(window_.GetHandle(), deltaSeconds, cameraKeyMap_);
+  math::Float3 previousCameraPosition = camera_.GetPosition();
+  if (!selectionController_.HasActiveTransform())
+  {
+    camera_.UpdateFromInput(window_.GetHandle(), deltaSeconds, cameraKeyMap_);
+  }
 
   const math::Float3 cameraPosition = camera_.GetPosition();
   const OBB obstacleCollider = MakeOBB(obstacleCube_);
@@ -103,68 +143,77 @@ void DemoApp::Update(float deltaSeconds)
 
   math::Float3 candidateCameraPosition = resolvedCameraPosition;
   candidateCameraPosition.x = cameraPosition.x;
-  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents), obstacleCollider))
+  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents),
+                  obstacleCollider))
   {
     resolvedCameraPosition.x = candidateCameraPosition.x;
   }
 
   candidateCameraPosition = resolvedCameraPosition;
   candidateCameraPosition.y = cameraPosition.y;
-  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents), obstacleCollider))
+  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents),
+                  obstacleCollider))
   {
     resolvedCameraPosition.y = candidateCameraPosition.y;
   }
 
   candidateCameraPosition = resolvedCameraPosition;
   candidateCameraPosition.z = cameraPosition.z;
-  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents), obstacleCollider))
+  if (!Intersects(MakeOBB(candidateCameraPosition, math::MakeFloat3(0.0f, 0.0f, 0.0f), kCameraCollisionExtents),
+                  obstacleCollider))
   {
     resolvedCameraPosition.z = candidateCameraPosition.z;
   }
 
   camera_.SetPosition(resolvedCameraPosition);
 
-  obstacleCube_.rotation.y += deltaSeconds * math::kHalfPi * 0.75f;
-  if (obstacleCube_.rotation.y > math::kTwoPi)
+  if (selectionController_.HasActiveTransform())
   {
-    obstacleCube_.rotation.y -= math::kTwoPi;
+    selectionController_.Update(window_.GetHandle(),
+                                camera_,
+                                window_.GetClientWidth(),
+                                window_.GetClientHeight(),
+                                playerCube_,
+                                obstacleCube_);
+  }
+  else
+  {
+    float moveX = 0.0f;
+    float moveZ = 0.0f;
+
+    if (input::IsKeyDown(cubeKeyMap_.moveLeft))
+    {
+      moveX -= cubeKeyMap_.moveSpeed * deltaSeconds;
+    }
+    if (input::IsKeyDown(cubeKeyMap_.moveRight))
+    {
+      moveX += cubeKeyMap_.moveSpeed * deltaSeconds;
+    }
+    if (input::IsKeyDown(cubeKeyMap_.moveForward))
+    {
+      moveZ += cubeKeyMap_.moveSpeed * deltaSeconds;
+    }
+    if (input::IsKeyDown(cubeKeyMap_.moveBackward))
+    {
+      moveZ -= cubeKeyMap_.moveSpeed * deltaSeconds;
+    }
+
+    CubeState nextCube = playerCube_;
+    nextCube.position.x = std::clamp(nextCube.position.x + moveX, -3.6f, 3.6f);
+    if (!Intersects(MakeOBB(nextCube), MakeOBB(obstacleCube_)))
+    {
+      playerCube_.position.x = nextCube.position.x;
+    }
+
+    nextCube = playerCube_;
+    nextCube.position.z = std::clamp(nextCube.position.z + moveZ, -3.0f, 3.0f);
+    if (!Intersects(MakeOBB(nextCube), MakeOBB(obstacleCube_)))
+    {
+      playerCube_.position.z = nextCube.position.z;
+    }
   }
 
-  float moveX = 0.0f;
-  float moveZ = 0.0f;
-
-  if (input::IsKeyDown(cubeKeyMap_.moveLeft))
-  {
-    moveX -= cubeKeyMap_.moveSpeed * deltaSeconds;
-  }
-  if (input::IsKeyDown(cubeKeyMap_.moveRight))
-  {
-    moveX += cubeKeyMap_.moveSpeed * deltaSeconds;
-  }
-  if (input::IsKeyDown(cubeKeyMap_.moveForward))
-  {
-    moveZ += cubeKeyMap_.moveSpeed * deltaSeconds;
-  }
-  if (input::IsKeyDown(cubeKeyMap_.moveBackward))
-  {
-    moveZ -= cubeKeyMap_.moveSpeed * deltaSeconds;
-  }
-
-  CubeState nextCube = playerCube_;
-  nextCube.position.x = std::clamp(nextCube.position.x + moveX, -3.6f, 3.6f);
-  if (!Intersects(MakeOBB(nextCube), MakeOBB(obstacleCube_)))
-  {
-    playerCube_.position.x = nextCube.position.x;
-  }
-
-  nextCube = playerCube_;
-  nextCube.position.z = std::clamp(nextCube.position.z + moveZ, -3.0f, 3.0f);
-  if (!Intersects(MakeOBB(nextCube), MakeOBB(obstacleCube_)))
-  {
-    playerCube_.position.z = nextCube.position.z;
-  }
-
-  collisionActive_ = Intersects(MakeOBB(playerCube_), obstacleCollider);
+  collisionActive_ = Intersects(MakeOBB(playerCube_), MakeOBB(obstacleCube_));
 }
 
 void DemoApp::HandleAntiAliasingHotkeys(WPARAM key)
@@ -214,4 +263,10 @@ void DemoApp::UpdateRenderMenuChecks()
   const RenderMode mode = renderer_.GetRenderMode();
   const UINT selectedCommand = (mode == RenderMode::RayTrace) ? kMenuRenderRayTrace : kMenuRenderRaster;
   CheckMenuRadioItem(renderMenu_, kMenuRenderRaster, kMenuRenderRayTrace, selectedCommand, MF_BYCOMMAND);
+}
+
+void DemoApp::UpdateWindowTitle()
+{
+  const std::wstring title = selectionController_.BuildWindowTitle(kWindowTitle);
+  SetWindowTextW(window_.GetHandle(), title.c_str());
 }

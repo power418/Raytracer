@@ -2,6 +2,7 @@
 
 #include "utils/Math.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 OBB MakeOBB(const math::Float3& position, const math::Float3& rotation, const math::Float3& extents)
@@ -103,6 +104,63 @@ bool Intersects(const OBB& a, const OBB& b)
         return false;
       }
     }
+  }
+
+  return true;
+}
+
+bool IntersectRay(const Ray& ray, const OBB& obb, float* outDistance)
+{
+  constexpr float epsilon = 1.0e-6f;
+
+  const math::Vector rayOrigin = math::Load(ray.origin);
+  const math::Vector obbCenter = math::Load(obb.center);
+  const math::Vector delta = math::Subtract(rayOrigin, obbCenter);
+
+  float tMin = 0.0f;
+  float tMax = 1.0e20f;
+
+  for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
+  {
+    const math::Vector axis = math::Load(obb.axes[axisIndex]);
+    const float originProjection = math::Dot3(delta, axis);
+    const float directionProjection = math::Dot3(math::Load(ray.direction), axis);
+    const float extent = (&obb.extents.x)[axisIndex];
+
+    if (std::fabs(directionProjection) < epsilon)
+    {
+      if (originProjection < -extent || originProjection > extent)
+      {
+        return false;
+      }
+
+      continue;
+    }
+
+    float t1 = (-extent - originProjection) / directionProjection;
+    float t2 = (extent - originProjection) / directionProjection;
+    if (t1 > t2)
+    {
+      std::swap(t1, t2);
+    }
+
+    tMin = std::max(tMin, t1);
+    tMax = std::min(tMax, t2);
+    if (tMin > tMax)
+    {
+      return false;
+    }
+  }
+
+  const float distance = tMin > epsilon ? tMin : tMax;
+  if (distance <= epsilon)
+  {
+    return false;
+  }
+
+  if (outDistance)
+  {
+    *outDistance = distance;
   }
 
   return true;

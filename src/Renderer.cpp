@@ -140,6 +140,7 @@ struct Renderer::Impl {
 
   ComPtr<ID3D11RasterizerState> rasterizerState;
   ComPtr<ID3D11RasterizerState> gridRasterizerState;
+  ComPtr<ID3D11RasterizerState> selectionRasterizerState;
   ComPtr<ID3D11DepthStencilState> depthStencilState;
   ComPtr<ID3D11DepthStencilState> disabledDepthStencilState;
   ComPtr<ID3D11BlendState> blendState;
@@ -155,6 +156,12 @@ struct Renderer::Impl {
   void DrawGrid(const Camera &camera);
   void DrawCube(const math::Matrix &viewMatrix, const CubeState &cube,
                 const math::Float4 &color);
+  void DrawSelectionOverlay(const Camera &camera,
+                            const CubeState &obstacleCube,
+                            const CubeState &playerCube,
+                            bool obstacleSelected,
+                            bool playerSelected);
+  void DrawSelectionCube(const math::Matrix &viewMatrix, const CubeState &cube);
   void BeginScenePass();
   void ResolveToBackBuffer(ID3D11ShaderResourceView *source,
                            std::uint32_t sourceWidth,
@@ -227,7 +234,8 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height) {
 }
 
 void Renderer::Render(const Camera &camera, const CubeState &obstacleCube,
-                      const CubeState &playerCube, bool collisionActive) {
+                      const CubeState &playerCube, bool collisionActive,
+                      bool obstacleSelected, bool playerSelected) {
   if (!impl_) {
     return;
   }
@@ -275,6 +283,8 @@ void Renderer::Render(const Camera &camera, const CubeState &obstacleCube,
   }
 
   impl_->ResolveToBackBuffer(source, sourceWidth, sourceHeight);
+  impl_->DrawSelectionOverlay(camera, obstacleCube, playerCube, obstacleSelected,
+                              playerSelected);
   impl_->swapChain->Present(1, 0);
 }
 
@@ -658,6 +668,14 @@ void Renderer::Impl::CreatePipelineStates() {
                     &gridRasterizerDesc, gridRasterizerState.GetAddressOf()),
                 "CreateRasterizerState(grid)");
 
+  D3D11_RASTERIZER_DESC selectionRasterizerDesc = rasterizerDesc;
+  selectionRasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+  selectionRasterizerDesc.CullMode = D3D11_CULL_NONE;
+  ThrowIfFailed(device->CreateRasterizerState(
+                    &selectionRasterizerDesc,
+                    selectionRasterizerState.GetAddressOf()),
+                "CreateRasterizerState(selection)");
+
   D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
   depthStencilDesc.DepthEnable = TRUE;
   depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -770,6 +788,59 @@ void Renderer::Impl::DrawCube(const math::Matrix &viewMatrix,
   context->Unmap(objectConstantBuffer.Get(), 0);
 
   context->DrawIndexed(indexCount, 0, 0);
+}
+
+void Renderer::Impl::DrawSelectionOverlay(const Camera &camera,
+                                          const CubeState &obstacleCube,
+                                          const CubeState &playerCube,
+                                          bool obstacleSelected,
+                                          bool playerSelected) {
+  if (!obstacleSelected && !playerSelected) {
+    return;
+  }
+
+  const math::Matrix viewMatrix = camera.GetViewMatrix();
+
+  ID3D11RenderTargetView *renderTargets[] = {backBufferRenderTargetView.Get()};
+  context->OMSetRenderTargets(1, renderTargets, nullptr);
+  context->RSSetViewports(1, &viewport);
+  context->RSSetState(selectionRasterizerState.Get());
+  context->OMSetDepthStencilState(disabledDepthStencilState.Get(), 0);
+
+  constexpr float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+  context->OMSetBlendState(blendState.Get(), blendFactor, 0xFFFFFFFF);
+
+  UINT stride = sizeof(Vertex);
+  UINT offset = 0;
+  ID3D11Buffer *vertexBuffers[] = {vertexBuffer.Get()};
+  context->IASetVertexBuffers(0, 1, vertexBuffers, &stride, &offset);
+  context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+  context->IASetInputLayout(inputLayout.Get());
+  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  context->VSSetShader(vertexShader.Get(), nullptr, 0);
+  context->PSSetShader(pixelShader.Get(), nullptr, 0);
+
+  ID3D11Buffer *constantBuffers[] = {objectConstantBuffer.Get()};
+  context->VSSetConstantBuffers(0, 1, constantBuffers);
+  context->PSSetConstantBuffers(0, 1, constantBuffers);
+
+  if (obstacleSelected) {
+    DrawSelectionCube(viewMatrix, obstacleCube);
+  }
+  if (playerSelected) {
+    DrawSelectionCube(viewMatrix, playerCube);
+  }
+
+  context->RSSetState(rasterizerState.Get());
+}
+
+void Renderer::Impl::DrawSelectionCube(const math::Matrix &viewMatrix,
+                                       const CubeState &cube) {
+  CubeState selectionCube = cube;
+  selectionCube.extents.x *= 1.03f;
+  selectionCube.extents.y *= 1.03f;
+  selectionCube.extents.z *= 1.03f;
+  DrawCube(viewMatrix, selectionCube, math::MakeFloat4(1.0f, 0.6f, 0.1f, 1.0f));
 }
 
 void Renderer::Impl::BeginScenePass() {
