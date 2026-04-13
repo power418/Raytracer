@@ -1,2 +1,5 @@
 /build/*
 /Debug/*
+
+*.exe
+*.pdb
