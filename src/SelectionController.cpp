@@ -15,26 +15,6 @@ constexpr float kRotationSensitivity = 0.01f;
 constexpr float kScaleSensitivity = 0.01f;
 constexpr float kMinimumExtent = 0.1f;
 
-math::Float3 Add(const math::Float3& left, const math::Float3& right)
-{
-  return math::MakeFloat3(left.x + right.x, left.y + right.y, left.z + right.z);
-}
-
-math::Float3 Subtract(const math::Float3& left, const math::Float3& right)
-{
-  return math::MakeFloat3(left.x - right.x, left.y - right.y, left.z - right.z);
-}
-
-math::Float3 Scale(const math::Float3& value, float scalar)
-{
-  return math::MakeFloat3(value.x * scalar, value.y * scalar, value.z * scalar);
-}
-
-float Dot(const math::Float3& left, const math::Float3& right)
-{
-  return left.x * right.x + left.y * right.y + left.z * right.z;
-}
-
 math::Float3 GetAxisDirection(SelectionController::TransformAxis axis)
 {
   switch (axis)
@@ -55,13 +35,13 @@ bool IntersectRayWithPlane(const Ray& ray,
                            const math::Float3& planeNormal,
                            math::Float3* outHitPoint)
 {
-  const float denominator = Dot(ray.direction, planeNormal);
+  const float denominator = math::Dot(ray.direction, planeNormal);
   if (std::fabs(denominator) < 1.0e-6f)
   {
     return false;
   }
 
-  const float distance = Dot(Subtract(planePoint, ray.origin), planeNormal) / denominator;
+  const float distance = math::Dot(math::Subtract(planePoint, ray.origin), planeNormal) / denominator;
   if (distance <= 1.0e-4f)
   {
     return false;
@@ -69,7 +49,7 @@ bool IntersectRayWithPlane(const Ray& ray,
 
   if (outHitPoint)
   {
-    *outHitPoint = Add(ray.origin, Scale(ray.direction, distance));
+    *outHitPoint = math::Add(ray.origin, math::Scale(ray.direction, distance));
   }
 
   return true;
@@ -80,22 +60,21 @@ math::Float3 BuildAxisPlaneNormal(const math::Float3& axisDirection,
                                   const math::Float3& cameraRight,
                                   const math::Float3& cameraUp)
 {
-  math::Float3 planeNormal =
-      Subtract(cameraForward, Scale(axisDirection, Dot(cameraForward, axisDirection)));
+  math::Float3 planeNormal = math::Subtract(cameraForward, math::Scale(axisDirection, math::Dot(cameraForward, axisDirection)));
   planeNormal = math::NormalizeOrFallback(planeNormal, math::MakeFloat3(0.0f, 0.0f, 0.0f));
   if (math::Length3(math::Load(planeNormal)) > 1.0e-4f)
   {
     return planeNormal;
   }
 
-  planeNormal = Subtract(cameraRight, Scale(axisDirection, Dot(cameraRight, axisDirection)));
+  planeNormal = math::Subtract(cameraRight, math::Scale(axisDirection, math::Dot(cameraRight, axisDirection)));
   planeNormal = math::NormalizeOrFallback(planeNormal, math::MakeFloat3(0.0f, 0.0f, 0.0f));
   if (math::Length3(math::Load(planeNormal)) > 1.0e-4f)
   {
     return planeNormal;
   }
 
-  planeNormal = Subtract(cameraUp, Scale(axisDirection, Dot(cameraUp, axisDirection)));
+  planeNormal = math::Subtract(cameraUp, math::Scale(axisDirection, math::Dot(cameraUp, axisDirection)));
   return math::NormalizeOrFallback(planeNormal, math::MakeFloat3(0.0f, 1.0f, 0.0f));
 }
 
@@ -349,7 +328,7 @@ void SelectionController::RebaseActiveTransform(HWND windowHandle,
       if (transformSession_.axis != TransformAxis::None)
       {
         transformSession_.initialAxisValue =
-            Dot(Subtract(hitPoint, cube->position), GetAxisDirection(transformSession_.axis));
+            math::Dot(math::Subtract(hitPoint, cube->position), GetAxisDirection(transformSession_.axis));
       }
     }
   }
@@ -408,14 +387,14 @@ void SelectionController::UpdateActiveTransform(HWND windowHandle,
 
     if (transformSession_.axis == TransformAxis::None)
     {
-      cube->position = Add(transformSession_.originalCube.position,
-                           Subtract(hitPoint, transformSession_.initialHitPoint));
+      cube->position = math::Add(transformSession_.originalCube.position,
+                           math::Subtract(hitPoint, transformSession_.initialHitPoint));
     }
     else
     {
-      const float currentAxisValue = Dot(Subtract(hitPoint, transformSession_.pivot), axisDirection);
+      const float currentAxisValue = math::Dot(math::Subtract(hitPoint, transformSession_.pivot), axisDirection);
       const float deltaAxis = currentAxisValue - transformSession_.initialAxisValue;
-      cube->position = Add(transformSession_.originalCube.position, Scale(axisDirection, deltaAxis));
+      cube->position = math::Add(transformSession_.originalCube.position, math::Scale(axisDirection, deltaAxis));
     }
 
     return;
@@ -541,7 +520,7 @@ math::Float3 SelectionController::BuildCursorRayDirection(const Camera& camera,
   const math::Float3 up = GetCameraUp(camera);
 
   return math::NormalizeOrFallback(
-      Add(Add(forward, Scale(right, normalizedX)), Scale(up, normalizedY)),
+      math::Add(math::Add(forward, math::Scale(right, normalizedX)), math::Scale(up, normalizedY)),
       forward);
 }
 
