@@ -1,8 +1,8 @@
-#include "Renderer.hpp"
-#include "EndlessGrid.hpp"
-#include "GraphicsAdapter.hpp"
-#include "GpuRayTracer.hpp"
-#include "utils/Math.hpp"
+#include "../include/Renderer.hpp"
+#include "../include/EndlessGrid.hpp"
+#include "../include/GraphicsAdapter.hpp"
+#include "../include/GpuRayTracer.hpp"
+#include "../utils/Math.hpp"
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -183,6 +183,8 @@ Renderer::~Renderer() = default;
 
 void Renderer::Initialize(HWND windowHandle, std::uint32_t width,
                           std::uint32_t height) {
+  std::printf("[Renderer] Initializing (HWND=%p, %ux%u)...\n",
+              static_cast<void*>(windowHandle), width, height);
   impl_ = std::make_unique<Impl>();
   impl_->width = width;
   impl_->height = height;
@@ -190,21 +192,40 @@ void Renderer::Initialize(HWND windowHandle, std::uint32_t width,
   UINT deviceFlags = 0;
 #if defined(_DEBUG)
   deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+  std::printf("[Renderer] Debug device flags enabled\n");
 #endif
 
+  std::printf("[Renderer] Creating D3D11 device and swap chain...\n");
   const HRESULT hr = gfx::CreateHighPerformanceDeviceAndSwapChain(
       windowHandle, width, height, deviceFlags, impl_->swapChain.GetAddressOf(),
       impl_->device.GetAddressOf(), impl_->context.GetAddressOf(),
       &impl_->adapterInfo);
   ThrowIfFailed(hr, "CreateHighPerformanceDeviceAndSwapChain");
+  std::printf("[Renderer] D3D11 device created successfully\n");
 
+  std::printf("[Renderer] Creating render targets...\n");
   impl_->CreateRenderTargets();
+  std::printf("[Renderer] Render targets created\n");
+
+  std::printf("[Renderer] Compiling shaders...\n");
   impl_->CreateShaders();
+  std::printf("[Renderer] Shaders compiled successfully\n");
+
+  std::printf("[Renderer] Creating geometry buffers...\n");
   impl_->CreateCubeBuffers();
   impl_->CreateGridBuffers();
   impl_->CreateFullscreenQuad();
+  std::printf("[Renderer] Geometry buffers created\n");
+
+  std::printf("[Renderer] Creating constant buffers...\n");
   impl_->CreateConstantBuffers();
+  std::printf("[Renderer] Constant buffers created\n");
+
+  std::printf("[Renderer] Creating pipeline states...\n");
   impl_->CreatePipelineStates();
+  std::printf("[Renderer] Pipeline states created\n");
+
+  std::printf("[Renderer] Initialization complete\n");
 }
 
 void Renderer::Resize(std::uint32_t width, std::uint32_t height) {
@@ -212,6 +233,7 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height) {
     return;
   }
 
+  std::printf("[Renderer] Resizing to %ux%u...\n", width, height);
   impl_->width = width;
   impl_->height = height;
 
@@ -231,6 +253,7 @@ void Renderer::Resize(std::uint32_t width, std::uint32_t height) {
       "IDXGISwapChain::ResizeBuffers");
 
   impl_->CreateRenderTargets();
+  std::printf("[Renderer] Resize complete\n");
 }
 
 void Renderer::Render(const Camera &camera, const CubeState &obstacleCube,
@@ -387,6 +410,7 @@ void Renderer::Impl::CreateShaders() {
     ComPtr<ID3DBlob> blob;
     ComPtr<ID3DBlob> errorBlob;
     const auto shaderPath = GetShaderPath(fileName);
+    std::printf("[Renderer]   Compiling shader: %ls (%s)\n", fileName, profile);
     const HRESULT hr = D3DCompileFromFile(
         shaderPath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
         entryPoint, profile, 0, 0, blob.GetAddressOf(),
@@ -395,8 +419,10 @@ void Renderer::Impl::CreateShaders() {
       const std::string message =
           errorBlob ? static_cast<const char *>(errorBlob->GetBufferPointer())
                     : "Shader compilation failed";
+      std::fprintf(stderr, "[Renderer]   ERROR: Shader %ls failed: %s\n", fileName, message.c_str());
       throw std::runtime_error(message);
     }
+    std::printf("[Renderer]   Shader %ls compiled OK (size=%zu bytes)\n", fileName, blob->GetBufferSize());
     if (shaderBlob) {
       *shaderBlob = blob.Get();
       if (*shaderBlob) {

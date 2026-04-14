@@ -1,6 +1,6 @@
-#include "GpuRayTracer.hpp"
+#include "../include/GpuRayTracer.hpp"
 
-#include "utils/Math.hpp"
+#include "../utils/Math.hpp"
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -107,6 +107,8 @@ void GpuRayTracer::Initialize(ID3D11Device* device, std::uint32_t width, std::ui
     throw std::runtime_error("GpuRayTracer::Initialize requires a valid device");
   }
 
+  std::printf("[GpuRayTracer] Initializing (%ux%u)...\n", width, height);
+
   if (!impl_)
   {
     impl_ = std::make_unique<Impl>();
@@ -117,15 +119,19 @@ void GpuRayTracer::Initialize(ID3D11Device* device, std::uint32_t width, std::ui
 
   if (!impl_->computeShader)
   {
+    std::printf("[GpuRayTracer] Compiling compute shader...\n");
     impl_->CreateShader(device);
+    std::printf("[GpuRayTracer] Compute shader compiled\n");
   }
 
   if (!impl_->constantBuffer)
   {
     impl_->CreateConstantBuffer(device);
+    std::printf("[GpuRayTracer] Constant buffer created\n");
   }
 
   impl_->CreateOutputTexture(device);
+  std::printf("[GpuRayTracer] Output texture created (%ux%u)\n", impl_->width, impl_->height);
 }
 
 void GpuRayTracer::Resize(ID3D11Device* device, std::uint32_t width, std::uint32_t height)
@@ -193,6 +199,7 @@ void GpuRayTracer::Impl::CreateShader(ID3D11Device* device)
   ComPtr<ID3DBlob> shaderBlob;
   ComPtr<ID3DBlob> errorBlob;
   const auto shaderPath = GetShaderPath(L"raytrace_cs.hlsl");
+  std::printf("[GpuRayTracer]   Shader path: %ls\n", shaderPath.c_str());
   const HRESULT hr = D3DCompileFromFile(shaderPath.c_str(),
                                         nullptr,
                                         D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -206,9 +213,11 @@ void GpuRayTracer::Impl::CreateShader(ID3D11Device* device)
   {
     const std::string message =
         errorBlob ? static_cast<const char*>(errorBlob->GetBufferPointer()) : "Compute shader compilation failed";
+    std::fprintf(stderr, "[GpuRayTracer]   ERROR: %s\n", message.c_str());
     throw std::runtime_error(message);
   }
 
+  std::printf("[GpuRayTracer]   Compute shader compiled (size=%zu bytes)\n", shaderBlob->GetBufferSize());
   ThrowIfFailed(device->CreateComputeShader(shaderBlob->GetBufferPointer(),
                                             shaderBlob->GetBufferSize(),
                                             nullptr,

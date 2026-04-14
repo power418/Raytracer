@@ -5,6 +5,7 @@
 #include "utils/Math.hpp"
 
 #include <algorithm>
+#include <cstdio>
 
 namespace
 {
@@ -20,35 +21,60 @@ DemoApp::DemoApp(HINSTANCE instance)
     cameraKeyMap_(input::MakeUnrealStyleCameraKeyMap()),
     cubeKeyMap_(input::MakeDemoCubeKeyMap())
 {
+  std::printf("[DemoApp] Constructing DemoApp...\n");
   playerCube_.position = math::MakeFloat3(-2.2f, 0.0f, 0.0f);
   obstacleCube_.position = math::MakeFloat3(0.0f, 0.0f, 0.0f);
+  std::printf("[DemoApp] Player cube at (%.1f, %.1f, %.1f)\n",
+              playerCube_.position.x, playerCube_.position.y, playerCube_.position.z);
+  std::printf("[DemoApp] Obstacle cube at (%.1f, %.1f, %.1f)\n",
+              obstacleCube_.position.x, obstacleCube_.position.y, obstacleCube_.position.z);
+  std::printf("[DemoApp] Construction complete\n");
 }
 
 DemoApp::~DemoApp() = default;
 
 int DemoApp::Run(int showCommand)
 {
+  std::printf("[DemoApp] Run() called\n");
+  std::printf("[DemoApp] Showing window...\n");
   window_.Show(showCommand);
+  std::printf("[DemoApp] Window shown successfully\n");
+
+  std::printf("[DemoApp] Initializing renderer (%ux%u)...\n",
+              window_.GetClientWidth(), window_.GetClientHeight());
   renderer_.Initialize(window_.GetHandle(), window_.GetClientWidth(), window_.GetClientHeight());
+  std::printf("[DemoApp] Renderer initialized successfully\n");
+
   SetupMenu();
+  std::printf("[DemoApp] Menu setup complete\n");
   UpdateWindowTitle();
   ResetTimer();
 
+  std::printf("[DemoApp] Entering main loop...\n");
+  std::uint64_t frameCount = 0;
   while (window_.ProcessMessages())
   {
     Tick();
+    ++frameCount;
+    if (frameCount % 600 == 0)
+    {
+      std::printf("[DemoApp] Frame %llu rendered\n", frameCount);
+    }
   }
 
+  std::printf("[DemoApp] Main loop exited after %llu frames\n", frameCount);
   return 0;
 }
 
 void DemoApp::OnResize(std::uint32_t width, std::uint32_t height)
 {
+  std::printf("[DemoApp] OnResize(%u, %u)\n", width, height);
   renderer_.Resize(width, height);
 }
 
 void DemoApp::OnKeyDown(WPARAM key)
 {
+  std::printf("[DemoApp] OnKeyDown(0x%02llX)\n", static_cast<unsigned long long>(key));
   if (selectionController_.HandleKeyDown(key,
                                          window_.GetHandle(),
                                          camera_,
@@ -72,6 +98,7 @@ void DemoApp::OnKeyDown(WPARAM key)
 
 void DemoApp::OnLeftMouseDown(std::int32_t x, std::int32_t y)
 {
+  std::printf("[DemoApp] OnLeftMouseDown(%d, %d)\n", x, y);
   selectionController_.HandleLeftClick(x,
                                        y,
                                        window_.GetHandle(),
@@ -83,14 +110,16 @@ void DemoApp::OnLeftMouseDown(std::int32_t x, std::int32_t y)
   UpdateWindowTitle();
 }
 
-void DemoApp::OnRightMouseDown(std::int32_t, std::int32_t)
+void DemoApp::OnRightMouseDown(std::int32_t x, std::int32_t y)
 {
+  std::printf("[DemoApp] OnRightMouseDown(%d, %d)\n", x, y);
   selectionController_.HandleRightClick(playerCube_, obstacleCube_);
   UpdateWindowTitle();
 }
 
 void DemoApp::OnCommand(WPARAM wParam, LPARAM)
 {
+  std::printf("[DemoApp] OnCommand(0x%04llX)\n", static_cast<unsigned long long>(LOWORD(wParam)));
   const UINT commandId = LOWORD(wParam);
   switch (commandId)
   {

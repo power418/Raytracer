@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/MathTypes.hpp"
+#include "../utils/MathTypes.hpp"
 
 class EndlessGrid
 {

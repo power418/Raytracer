@@ -1,9 +1,10 @@
-#include "GraphicsAdapter.hpp"
+#include "../include/GraphicsAdapter.hpp"
 
 #include <wrl/client.h>
 
 #include <array>
 #include <cstdint>
+#include <cstdio>
 
 using Microsoft::WRL::ComPtr;
 
@@ -41,6 +42,10 @@ void TryAddAdapter(ComPtr<IDXGIAdapter1> adapter, AdapterCandidate* bestCandidat
     return;
   }
 
+  std::printf("[GraphicsAdapter]   Found adapter: %ls (VRAM: %zu MB)\n",
+              description.Description,
+              static_cast<std::size_t>(description.DedicatedVideoMemory / (1024 * 1024)));
+
   if (!bestCandidate->adapter || description.DedicatedVideoMemory > bestCandidate->description.DedicatedVideoMemory)
   {
     bestCandidate->adapter = adapter;
@@ -53,10 +58,13 @@ AdapterCandidate SelectBestHardwareAdapter(IDXGIFactory1* factory, bool* highPer
   AdapterCandidate bestCandidate = {};
   *highPerformanceSelectionAvailable = false;
 
+  std::printf("[GraphicsAdapter] Enumerating GPU adapters...\n");
+
   ComPtr<IDXGIFactory6> factory6;
   if (SUCCEEDED(factory->QueryInterface(IID_PPV_ARGS(factory6.GetAddressOf()))))
   {
     *highPerformanceSelectionAvailable = true;
+    std::printf("[GraphicsAdapter] IDXGIFactory6 available (high-performance GPU selection)\n");
 
     for (UINT adapterIndex = 0;; ++adapterIndex)
     {
@@ -77,9 +85,14 @@ AdapterCandidate SelectBestHardwareAdapter(IDXGIFactory1* factory, bool* highPer
       }
     }
   }
+  else
+  {
+    std::printf("[GraphicsAdapter] IDXGIFactory6 not available, using legacy enumeration\n");
+  }
 
   if (bestCandidate.adapter)
   {
+    std::printf("[GraphicsAdapter] Selected adapter: %ls\n", bestCandidate.description.Description);
     return bestCandidate;
   }
 
@@ -96,6 +109,15 @@ AdapterCandidate SelectBestHardwareAdapter(IDXGIFactory1* factory, bool* highPer
     {
       TryAddAdapter(adapter, &bestCandidate);
     }
+  }
+
+  if (bestCandidate.adapter)
+  {
+    std::printf("[GraphicsAdapter] Selected adapter (legacy): %ls\n", bestCandidate.description.Description);
+  }
+  else
+  {
+    std::fprintf(stderr, "[GraphicsAdapter] ERROR: No suitable GPU adapter found!\n");
   }
 
   return bestCandidate;
@@ -231,6 +253,10 @@ HRESULT gfx::CreateHighPerformanceDeviceAndSwapChain(
     adapterInfo->dedicatedVideoMemory = static_cast<std::size_t>(selectedAdapter.description.DedicatedVideoMemory);
     adapterInfo->highPerformanceSelectionAvailable = highPerformanceSelectionAvailable;
     adapterInfo->discreteLikely = LooksDiscrete(selectedAdapter.description);
+    std::printf("[GraphicsAdapter] GPU: %ls\n", adapterInfo->description.c_str());
+    std::printf("[GraphicsAdapter] VRAM: %zu MB\n", adapterInfo->dedicatedVideoMemory / (1024 * 1024));
+    std::printf("[GraphicsAdapter] Discrete GPU: %s\n", adapterInfo->discreteLikely ? "Yes" : "No");
+    std::printf("[GraphicsAdapter] High-perf selection: %s\n", adapterInfo->highPerformanceSelectionAvailable ? "Yes" : "No");
   }
 
   return hr;

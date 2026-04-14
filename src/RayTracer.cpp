@@ -1,6 +1,6 @@
-#include "RayTracer.hpp"
+#include "../include/RayTracer.hpp"
 
-#include "utils/Math.hpp"
+#include "../utils/Math.hpp"
 
 #include <algorithm>
 #include <array>

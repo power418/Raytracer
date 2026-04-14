@@ -1,6 +1,6 @@
-#include "EndlessGrid.hpp"
+#include "../include/EndlessGrid.hpp"
 
-#include "utils/Math.hpp"
+#include "../utils/Math.hpp"
 
 #include <cmath>
 

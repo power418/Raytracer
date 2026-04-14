@@ -1,8 +1,8 @@
-#include "SelectionController.hpp"
+#include "../include/SelectionController.hpp"
 
-#include "Collision.hpp"
-#include "utils/Input.hpp"
-#include "utils/Math.hpp"
+#include "../include/Collision.hpp"
+#include "../utils/Input.hpp"
+#include "../utils/Math.hpp"
 
 #include <algorithm>
 #include <cmath>

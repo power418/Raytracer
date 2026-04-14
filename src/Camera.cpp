@@ -1,7 +1,7 @@
-#include "Camera.hpp"
+#include "../include/Camera.hpp"
 
-#include "utils/Input.hpp"
-#include "utils/Math.hpp"
+#include "../utils/Input.hpp"
+#include "../utils/Math.hpp"
 
 #include <algorithm>
 #include <cmath>

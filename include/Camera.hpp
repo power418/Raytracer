@@ -1,7 +1,7 @@
 #pragma once
 
-#include "utils/KeyMap.hpp"
-#include "utils/MathTypes.hpp"
+#include "../utils/KeyMap.hpp"
+#include "../utils/MathTypes.hpp"
 
 #define NOMINMAX
 #include <Windows.h>

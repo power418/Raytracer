@@ -7,7 +7,7 @@
 #include "SceneTypes.hpp"
 #include "Window.hpp"
 
-#include "utils/KeyMap.hpp"
+#include "../utils/KeyMap.hpp"
 
 #include <Windows.h>
 

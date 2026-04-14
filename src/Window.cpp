@@ -1,7 +1,10 @@
-#include "Window.hpp"
+#include "../include/Window.hpp"
 
+#include <Windows.h>
 #include <windowsx.h>
 
+#include <cstdio>
+#include <string_view>
 #include <stdexcept>
 
 namespace
@@ -20,12 +23,15 @@ Window::Window(HINSTANCE instance,
     clientWidth_(clientWidth),
     clientHeight_(clientHeight)
 {
+  std::printf("[Window] Creating window (%ux%u)...\n", clientWidth, clientHeight);
   RegisterWindowClass();
   CreateAppWindow();
+  std::printf("[Window] Window created successfully (HWND=%p)\n", static_cast<void*>(windowHandle_));
 }
 
 Window::~Window()
 {
+  std::printf("[Window] Destroying window...\n");
   if (windowHandle_)
   {
     DestroyWindow(windowHandle_);
@@ -35,6 +41,7 @@ Window::~Window()
   {
     UnregisterClassW(kWindowClassName, instance_);
   }
+  std::printf("[Window] Window destroyed\n");
 }
 
 bool Window::ProcessMessages() const
@@ -77,6 +84,7 @@ std::uint32_t Window::GetClientHeight() const
 
 void Window::RegisterWindowClass()
 {
+  std::printf("[Window] Registering window class...\n");
   WNDCLASSEXW windowClass = {};
   windowClass.cbSize = sizeof(windowClass);
   windowClass.lpfnWndProc = &Window::WindowProcSetup;
@@ -87,14 +95,22 @@ void Window::RegisterWindowClass()
   classAtom_ = RegisterClassExW(&windowClass);
   if (classAtom_ == 0)
   {
+    std::fprintf(stderr, "[Window] ERROR: RegisterClassExW failed (error=%lu)\n", GetLastError());
     throw std::runtime_error("RegisterClassExW failed");
   }
+  std::printf("[Window] Window class registered (atom=%u)\n", classAtom_);
 }
 
 void Window::CreateAppWindow()
 {
+  std::printf("[Window] Creating application window...\n");
   RECT rect = {0, 0, static_cast<LONG>(clientWidth_), static_cast<LONG>(clientHeight_)};
   AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+
+  const int windowWidth = rect.right - rect.left;
+  const int windowHeight = rect.bottom - rect.top;
+  std::printf("[Window] Adjusted window size: %dx%d (client: %ux%u)\n",
+              windowWidth, windowHeight, clientWidth_, clientHeight_);
 
   windowHandle_ = CreateWindowExW(
     0,
@@ -103,8 +119,8 @@ void Window::CreateAppWindow()
     WS_OVERLAPPEDWINDOW,
     CW_USEDEFAULT,
     CW_USEDEFAULT,
-    rect.right - rect.left,
-    rect.bottom - rect.top,
+    windowWidth,
+    windowHeight,
     nullptr,
     nullptr,
     instance_,
@@ -112,6 +128,7 @@ void Window::CreateAppWindow()
 
   if (!windowHandle_)
   {
+    std::fprintf(stderr, "[Window] ERROR: CreateWindowExW failed (error=%lu)\n", GetLastError());
     throw std::runtime_error("CreateWindowExW failed");
   }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SceneTypes.hpp"
+#include "../utils/Math.hpp"
 
 #include <array>
 

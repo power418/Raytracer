@@ -2,7 +2,7 @@
 
 #include "Camera.hpp"
 #include "SceneTypes.hpp"
-#include "utils/MathTypes.hpp"
+#include "../utils/MathTypes.hpp"
 
 #include <cstdint>
 #include <vector>
